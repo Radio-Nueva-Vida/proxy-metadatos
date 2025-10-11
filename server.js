@@ -1,43 +1,19 @@
-// ===============================
-// Proxy Seguro HTTPS para Icecast (Caster.fm)
-// ===============================
-
-import express from "express";
-import fetch from "node-fetch";
-
+const express = require('express');
+const fetch = require('node-fetch');
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// URL del stream Caster.fm (Icecast)
-const STREAM_URL = "http://shaincast.caster.fm:48858/listen.mp3";
-
-// Permitir CORS
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  next();
-});
-
-// Ruta principal
-app.get("/", (req, res) => {
-  res.send("🎧 Proxy HTTPS activo - Radio Nueva Vida (Caster.fm)");
-});
-
-// Ruta del stream
-app.get("/stream", async (req, res) => {
-  try {
-    const response = await fetch(STREAM_URL);
-    if (!response.ok) {
-      return res.status(response.status).send("Error al conectar con el stream");
+app.get('/metadata', async (req, res) => {
+    try {
+        const response = await fetch('http://usa13.fastcast4u.com:5696/7.html');
+        const text = await response.text();
+        res.set('Access-Control-Allow-Origin', '*');
+        res.send(text);
+    } catch (error) {
+        res.status(500).send('Error obteniendo metadatos');
     }
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Cache-Control", "no-cache");
-    response.body.pipe(res);
-  } catch (error) {
-    console.error("Error al conectar con Caster.fm:", error);
-    res.status(500).send("Error interno del proxy");
-  }
 });
 
-const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`✅ Proxy Caster.fm activo en puerto ${PORT}`);
+    console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
