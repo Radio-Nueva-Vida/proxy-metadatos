@@ -1,14 +1,13 @@
 {
-  "name": "proxy-radio-nueva-vida",
+  "name": "radio-proxy",
   "version": "1.0.0",
-  "description": "Proxy HTTPS para retransmitir Caster.fm (Icecast)",
+  "description": "Proxy para obtener metadatos desde Shoutcast sin CORS",
   "main": "server.js",
-  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^2.6.7"
   }
 }
