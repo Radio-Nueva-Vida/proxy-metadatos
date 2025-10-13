@@ -1,11 +1,11 @@
 const express = require('express');
-const fetch = require('node-fetch');
+const axios = require('axios'); // Usamos AXIOS para la petición HTTP
 const app = express();
 const PORT = process.env.PORT || 3000;
+const STREAM_URL = 'http://usa13.fastcast4u.com:5696/7.html';
 
-// 1. MIDDLEWARE CORS CORREGIDO: Se aplica a todas las solicitudes
+// 1. MIDDLEWARE CORS: Habilitar acceso desde cualquier origen
 app.use((req, res, next) => {
-    // Permite el acceso desde cualquier dominio
     res.setHeader('Access-Control-Allow-Origin', '*'); 
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -16,14 +16,14 @@ app.use((req, res, next) => {
 function limpiarYFormatear(texto) {
     if (!texto) return '';
     return texto
-        .replace(/_/g, ' ')                       // Reemplaza guiones bajos por espacios
-        .replace(/-Xvidadura/gi, '')              // Elimina sufijos específicos
-        .replace(/\.mp3|\.wav|\.aac|\.ogg/gi, '') // Elimina extensiones
-        .replace(/\s{2,}/g, ' ')                  // Elimina espacios dobles
-        .replace(/\s*-\s*$/, '')                  // Elimina guiones finales
+        .replace(/_/g, ' ')                       
+        .replace(/-Xvidadura/gi, '')              
+        .replace(/\.mp3|\.wav|\.aac|\.ogg/gi, '') 
+        .replace(/\s{2,}/g, ' ')                  
+        .replace(/\s*-\s*$/, '')                  
         .trim()
-        .toLowerCase()                            // Pone todo en minúscula
-        .replace(/\b\w/g, c => c.toUpperCase());  // Mayúscula inicial en cada palabra
+        .toLowerCase()                            
+        .replace(/\b\w/g, c => c.toUpperCase());  
 }
 
 app.get('/', (req, res) => {
@@ -32,20 +32,14 @@ app.get('/', (req, res) => {
 
 app.get('/metadata', async (req, res) => {
     try {
-        // 2. AÑADIR TIMEOUT: Ayuda a prevenir el error 500 si la URL de la radio es lenta
-        const response = await fetch('http://usa13.fastcast4u.com:5696/7.html', {
-            timeout: 5000 // 5 segundos de espera máxima
+        // 2. USO DE AXIOS: Obtiene la respuesta con un timeout
+        const response = await axios.get(STREAM_URL, {
+            timeout: 5000 // 5 segundos de espera
         });
 
-        if (!response.ok) {
-            // Manejar errores de respuesta HTTP (ej: 404, 503 del servidor de la radio)
-            throw new Error(`Stream server responded with status: ${response.status}`);
-        }
+        const text = response.data;
 
-        const text = await response.text();
-
-        // Limpieza del HTML y separación de los datos
-        // Tu lógica de parseo es correcta para este tipo de stream
+        // Lógica de parseo
         const parts = text.replace(/<[^>]*>?/gm, '').split(',');
         const songInfo = parts[6] ? parts[6].trim() : '';
 
@@ -62,8 +56,7 @@ app.get('/metadata', async (req, res) => {
         artist = limpiarYFormatear(artist);
         title = limpiarYFormatear(title);
 
-        // Enviar JSON limpio
-        // Ya no necesitamos res.setHeader aquí, lo hace el middleware.
+        // Enviar JSON
         res.json({
             artist: artist || 'Desconocido',
             title: title || 'Sin título',
@@ -71,9 +64,14 @@ app.get('/metadata', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error al obtener metadatos:', error.message);
-        // Devolver el error 500 al cliente con un mensaje útil
-        res.status(500).json({ error: `Error obteniendo metadatos: ${error.message}` });
+        // 3. LOGGING CLARO Y CÓDIGO DE ERROR 503
+        console.error('Error al obtener metadatos (AXIOS):', error.message);
+        
+        // El 503 indica que el servicio (stream) no está disponible temporalmente.
+        res.status(503).json({ 
+            error: 'Stream temporalmente no disponible (Proxy error)',
+            detail: error.message 
+        });
     }
 });
 
