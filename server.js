@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios'); // Usamos AXIOS para la petición HTTP
 const app = express();
 const PORT = process.env.PORT || 3000;
-const STREAM_URL = 'http://usa13.fastcast4u.com:5696/7.html';
+const STREAM_URL = "https://radios.solumedia.com:6292/stream?icy=http";
 
 // 1. MIDDLEWARE CORS: Habilitar acceso desde cualquier origen
 app.use((req, res, next) => {
