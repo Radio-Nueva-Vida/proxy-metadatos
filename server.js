@@ -32,11 +32,18 @@ app.get('/', (req, res) => {
 
 app.get('/metadata', async (req, res) => {
   try {
-    const response = await axios.get(METADATA_URL, { timeout: 5000 });
-    const text = response.data.replace(/<[^>]+>/g, ''); // quita etiquetas HTML
+    // 🔸 Agregamos parámetro aleatorio para evitar caché en el servidor origen
+    const response = await axios.get(`${METADATA_URL}?t=${Date.now()}`, {
+      timeout: 5000,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+
+    const text = response.data.replace(/<[^>]+>/g, '');
     const parts = text.split(',');
 
-    // El formato típico es: 1, artista - título, ...
     let rawSong = parts[6] || parts[0] || '';
     rawSong = rawSong.trim();
 
@@ -47,11 +54,19 @@ app.get('/metadata', async (req, res) => {
       title = rawSong;
     }
 
+    // 🔸 Respuesta sin caché al cliente (tu reproductor)
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+
     res.json({
       artist: limpiarYFormatear(artist),
       title: limpiarYFormatear(title),
       stream: "https://radios.solumedia.com:6292/stream?icy=http"
     });
+
   } catch (error) {
     console.error('Error obteniendo metadatos:', error.message);
     res.status(503).json({ error: 'No se pudo obtener metadatos', detail: error.message });
